@@ -52,13 +52,18 @@
       <section class="editor" id="editor" hidden>
         <div class="editor-intro" id="editorIntro">
           <h1>Paste a response to review</h1>
-          <p>Then tap any line — or select a phrase — to comment on it. When you’re done,
+          <p>Or open a file (<code>.md</code>, <code>.txt</code>)<span class="desktop-only"> — or just drop it on the page</span>.
+            Then tap any line — or select a phrase — to comment on it. When you’re done,
             <strong>Copy comments</strong> puts them all on your clipboard, each under a quote of what it refers to,
             ready to paste back into the chat.</p>
         </div>
         <textarea id="sourceInput" placeholder="Paste plain text or markdown…" spellcheck="false" aria-label="Text to review"></textarea>
         <div class="editor-actions">
           <button class="btn" id="pasteBtn" hidden>Paste from clipboard</button>
+          <button class="btn" id="fileBtn">Open file…</button>
+          <!-- No `accept` filter on purpose: mobile pickers may grey out extensions they don't
+               recognise (such as .md). Non-text files are refused after reading instead. -->
+          <input type="file" id="fileInput" multiple hidden>
           <span class="spacer"></span>
           <button class="btn" id="editorCancel" hidden>Cancel</button>
           <button class="btn btn-primary" id="editorDone">Start commenting</button>
@@ -83,6 +88,8 @@
   </button>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <div class="drop-overlay" aria-hidden="true"><span id="dropLabel">Drop to open as a new review</span></div>
 
   <dialog class="preview" id="previewDlg" aria-labelledby="previewTitle">
     <div class="preview-head">

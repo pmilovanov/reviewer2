@@ -226,7 +226,8 @@ a { color: var(--accent); }
   resize: vertical;
 }
 #sourceInput:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.editor-actions { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
+.editor-intro code { font: 0.88em var(--mono); padding: 0.05em 0.3em; border-radius: 4px; background: var(--code-bg); }
+.editor-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
 .spacer { flex: 1; }
 
 /* ---------- Document lines ---------- */
@@ -496,6 +497,29 @@ a { color: var(--accent); }
 
 .backdrop { display: none; }
 
+.drop-overlay {
+  display: none;
+  position: fixed;
+  inset: 0.5rem;
+  z-index: 60;
+  align-items: center;
+  justify-content: center;
+  border: 3px dashed var(--accent);
+  border-radius: 14px;
+  background: rgba(47, 111, 235, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  pointer-events: none;
+}
+.drop-overlay span {
+  padding: 0.7rem 1.2rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 650;
+  box-shadow: var(--shadow);
+}
+body.dragging .drop-overlay { display: flex; }
+
 /* ---------- Narrow screens (phones) ---------- */
 
 @media (min-width: 761px) {
@@ -529,7 +553,10 @@ a { color: var(--accent); }
   .topbar { padding-left: 0.4rem; padding-right: 0.5rem; }
   .editor, .doc { padding: 0.75rem 0.6rem 7rem 0.35rem; }
   .editor { padding-left: 0.75rem; padding-right: 0.75rem; }
-  #sourceInput { font-size: 16px; min-height: 50vh; }
+  #sourceInput { font-size: 16px; min-height: 38vh; }
+  /* Two source buttons share a row; the primary action gets the full width below. */
+  .editor-actions .spacer { display: none; }
+  .editor-actions .btn { flex: 1 1 40%; min-height: 2.75rem; font-size: 1rem; }
   .gutter { padding-right: 0.45rem; font-size: 10.5px; }
   .line.has-comments .gutter::before { left: 0.15rem; }
   .thread { margin-left: 0.6rem; }
