@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>reviewer2</title>
+  <meta name="description" content="Comment on an LLM response line by line, then copy your comments as quoted replies.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15171c" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="reviewer2">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Saved documents">
+      <div class="sidebar-head">
+        <span class="brand"><img src="icons/icon.svg" alt="" width="22" height="22"> reviewer2</span>
+        <button class="btn btn-primary btn-sm" id="newBtn" title="Review a new response">+ New</button>
+      </div>
+      <nav class="doc-list" id="docList"></nav>
+      <p class="sidebar-foot">Saved in this browser only.</p>
+    </aside>
+    <div class="backdrop" id="backdrop"></div>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn mobile-only" id="menuBtn" aria-label="Saved documents" title="Saved documents">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <span class="header-label" id="headerLabel">New review</span>
+        <input class="title-input" id="titleInput" type="text" autocomplete="off" spellcheck="false" aria-label="Title" hidden>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="editBtn" title="Edit the text" aria-label="Edit the text" hidden>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>
+          </button>
+          <button class="icon-btn" id="rawBtn" title="Show raw markdown" aria-label="Toggle raw markdown" hidden>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6"/></svg>
+          </button>
+          <button class="btn desktop-only" data-action="preview" title="See exactly what will be copied" hidden>Preview</button>
+          <button class="btn btn-primary desktop-only" data-action="copy" title="Copy every comment, each under a quote of the line it refers to — ready to paste into your chat" disabled>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>
+            <span class="label">No comments yet</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="editor" id="editor" hidden>
+        <div class="editor-intro" id="editorIntro">
+          <h1>Paste a response to review</h1>
+          <p>Then tap any line — or select a phrase — to comment on it. When you’re done,
+            <strong>Copy comments</strong> puts them all on your clipboard, each under a quote of what it refers to,
+            ready to paste back into the chat.</p>
+        </div>
+        <textarea id="sourceInput" placeholder="Paste plain text or markdown…" spellcheck="false" aria-label="Text to review"></textarea>
+        <div class="editor-actions">
+          <button class="btn" id="pasteBtn" hidden>Paste from clipboard</button>
+          <span class="spacer"></span>
+          <button class="btn" id="editorCancel" hidden>Cancel</button>
+          <button class="btn btn-primary" id="editorDone">Start commenting</button>
+        </div>
+      </section>
+
+      <section class="doc" id="doc" hidden aria-label="Document — tap a line to comment"></section>
+
+      <div class="bottombar mobile-only" id="bottombar" hidden>
+        <button class="btn" data-action="preview" hidden>Preview</button>
+        <button class="btn btn-primary" data-action="copy" disabled>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>
+          <span class="label">No comments yet</span>
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <button class="sel-btn" id="selBtn" hidden>
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
+    Comment on selection
+  </button>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog class="preview" id="previewDlg" aria-labelledby="previewTitle">
+    <div class="preview-head">
+      <h2 id="previewTitle">What will be copied</h2>
+      <span class="muted" id="previewCount"></span>
+    </div>
+    <textarea id="previewText" readonly spellcheck="false" aria-label="Text to copy"></textarea>
+    <div class="preview-actions">
+      <button class="btn" id="previewClose">Close</button>
+      <button class="btn btn-primary" id="previewCopy">Copy</button>
+    </div>
+  </dialog>
+
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

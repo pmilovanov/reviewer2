@@ -1,0 +1,14 @@
+{
+  "name": "reviewer2",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Comment on an LLM response line by line, then copy your comments as quoted replies.",
+  "scripts": {
+    "start": "node tests/serve.js",
+    "test": "node --test tests/core.test.js",
+    "test:e2e": "node tests/e2e.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}
