@@ -41,10 +41,15 @@
           <button class="icon-btn" id="rawBtn" title="Show raw markdown" aria-label="Toggle raw markdown" hidden>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6"/></svg>
           </button>
-          <button class="btn desktop-only" data-action="preview" title="See exactly what will be copied" hidden>Preview</button>
-          <button class="btn btn-primary desktop-only" data-action="copy" title="Copy every comment, each under a quote of the line it refers to — ready to paste into your chat" disabled>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>
-            <span class="label">No comments yet</span>
+          <!-- On phones these shrink: Preview to an icon, Copy to "Copy 3". -->
+          <button class="btn btn-preview" data-action="preview" title="See exactly what will be copied" aria-label="Preview what will be copied" hidden>
+            <svg class="mobile-only" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="desktop-only">Preview</span>
+          </button>
+          <button class="btn btn-primary btn-copy" data-action="copy" title="Copy every comment, each under a quote of the line it refers to — ready to paste into your chat" disabled hidden>
+            <svg class="desktop-only" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>
+            <span class="label-long desktop-only">No comments yet</span>
+            <span class="label-short mobile-only">Copy</span>
           </button>
         </div>
       </header>
@@ -76,14 +81,6 @@
       </section>
 
       <section class="doc" id="doc" hidden aria-label="Document — tap a line to comment"></section>
-
-      <div class="bottombar mobile-only" id="bottombar" hidden>
-        <button class="btn" data-action="preview" hidden>Preview</button>
-        <button class="btn btn-primary" data-action="copy" disabled>
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>
-          <span class="label">No comments yet</span>
-        </button>
-      </div>
     </main>
   </div>
 

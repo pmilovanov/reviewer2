@@ -145,7 +145,6 @@
     editorCancel: $('#editorCancel'),
     editorDone: $('#editorDone'),
     doc: $('#doc'),
-    bottombar: $('#bottombar'),
     selBtn: $('#selBtn'),
     toast: $('#toast'),
     dlg: $('#previewDlg'),
@@ -248,8 +247,6 @@
     el.rawBtn.hidden = !viewing;
     el.rawBtn.classList.toggle('on', !!prefs.raw);
     el.rawBtn.title = prefs.raw ? 'Show formatted' : 'Show raw markdown';
-    el.bottombar.hidden = !viewing;
-    document.body.classList.toggle('viewing', !!viewing);
     updateCount();
   }
 
@@ -259,7 +256,8 @@
     for (const b of $$('[data-action="copy"]')) {
       b.hidden = !viewing;
       b.disabled = !n;
-      b.querySelector('.label').textContent = n ? `Copy ${plural(n, 'comment')}` : 'No comments yet';
+      b.querySelector('.label-long').textContent = n ? `Copy ${plural(n, 'comment')}` : 'No comments yet';
+      b.querySelector('.label-short').textContent = n ? `Copy ${n}` : 'Copy';
     }
     for (const b of $$('[data-action="preview"]')) {
       b.hidden = !viewing;
