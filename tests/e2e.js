@@ -154,6 +154,7 @@ async function desktop(browser, base) {
   await page.waitForTimeout(500);
   await page.reload();
   await page.waitForSelector('#doc:not([hidden])');
+  assert.ok(await page.evaluate(() => !!navigator.serviceWorker.controller), 'service worker serves the reload');
   assert.equal(await page.locator('.comment').count(), 4);
   assert.equal(await page.inputValue(`${threadSel(12)} .composer textarea`), 'half-written thought');
   await page.click(`${threadSel(12)} .composer .btn:not(.btn-primary)`); // Cancel
@@ -303,6 +304,19 @@ async function phone(browser, base) {
   // No horizontal overflow on a narrow screen.
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   assert.ok(overflow <= 0, `page overflows horizontally by ${overflow}px`);
+
+  // Tapping "Open file…" itself opens the system picker (exactly once), and the
+  // chosen file becomes a document.
+  await page.goto(`${base}#new`);
+  await page.waitForSelector('#editor:not([hidden])');
+  let choosers = 0;
+  page.on('filechooser', () => { choosers++; });
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.tap('#fileBtn')]);
+  assert.ok(chooser.isMultiple());
+  await chooser.setFiles([{ name: 'from-phone.md', mimeType: 'text/markdown', buffer: Buffer.from('# From the phone\n\nPicked with the system file picker.') }]);
+  await page.waitForFunction(() => document.querySelector('#titleInput').value === 'from-phone');
+  assert.equal(await page.textContent(`${lineSel(1)} .content`), 'From the phone');
+  assert.equal(choosers, 1, 'the picker opens once per tap');
   await context.close();
 }
 

@@ -139,7 +139,7 @@
     editorIntro: $('#editorIntro'),
     source: $('#sourceInput'),
     pasteBtn: $('#pasteBtn'),
-    fileBtn: $('#fileBtn'),
+    fileBtnText: $('#fileBtnText'),
     fileInput: $('#fileInput'),
     dropLabel: $('#dropLabel'),
     editorCancel: $('#editorCancel'),
@@ -280,7 +280,7 @@
     el.editorDone.textContent = isNew ? 'Start commenting' : 'Save text';
     el.source.value = isNew ? '' : doc.text;
     el.pasteBtn.hidden = !(isNew && navigator.clipboard && navigator.clipboard.readText);
-    el.fileBtn.textContent = isNew ? 'Open file…' : 'Replace from file…';
+    el.fileBtnText.textContent = isNew ? 'Open file…' : 'Replace from file…';
     el.fileInput.multiple = isNew;
     updateChrome();
     if (!isNew || matchMedia('(hover: hover)').matches) el.source.focus({ preventScroll: true });
@@ -956,7 +956,7 @@
     }
   });
 
-  el.fileBtn.addEventListener('click', () => el.fileInput.click());
+  // #fileBtn is a <label> wrapping the input, so the browser opens the picker natively.
   el.fileInput.addEventListener('change', () => {
     const files = [...el.fileInput.files];
     el.fileInput.value = ''; // so choosing the same file again still fires

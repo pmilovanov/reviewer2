@@ -60,10 +60,15 @@
         <textarea id="sourceInput" placeholder="Paste plain text or markdown…" spellcheck="false" aria-label="Text to review"></textarea>
         <div class="editor-actions">
           <button class="btn" id="pasteBtn" hidden>Paste from clipboard</button>
-          <button class="btn" id="fileBtn">Open file…</button>
-          <!-- No `accept` filter on purpose: mobile pickers may grey out extensions they don't
+          <!-- A <label> around the input, not a button calling input.click(): the browser opens
+               the picker itself, which iOS Safari honours where it may ignore a scripted click
+               on a hidden input. The input is visually hidden but not display:none.
+               No `accept` filter on purpose: mobile pickers may grey out extensions they don't
                recognise (such as .md). Non-text files are refused after reading instead. -->
-          <input type="file" id="fileInput" multiple hidden>
+          <label class="btn file-btn" id="fileBtn">
+            <span id="fileBtnText">Open file…</span>
+            <input type="file" id="fileInput" class="visually-hidden" multiple>
+          </label>
           <span class="spacer"></span>
           <button class="btn" id="editorCancel" hidden>Cancel</button>
           <button class="btn btn-primary" id="editorDone">Start commenting</button>
