@@ -41,6 +41,23 @@ async function clipboard(page) {
   return page.evaluate(() => navigator.clipboard.readText());
 }
 
+/** Every visible header control sits on one row inside the viewport, and the title keeps some room. */
+async function headerFits(page, minTitle = 60) {
+  const r = await page.evaluate(() => {
+    const bar = document.querySelector('.topbar').getBoundingClientRect();
+    const items = [...document.querySelectorAll('.topbar button, .topbar input')]
+      .filter((e) => e.offsetParent !== null)
+      .map((e) => ({ id: e.id || e.dataset.action || e.className, ...e.getBoundingClientRect().toJSON() }));
+    return { bar, items, vw: document.documentElement.clientWidth, title: document.querySelector('#titleInput').offsetWidth };
+  });
+  for (const it of r.items) {
+    assert.ok(it.right <= r.vw + 0.5 && it.left >= -0.5, `${it.id} is off-screen (${it.left}–${it.right} of ${r.vw})`);
+    assert.ok(it.top >= r.bar.top - 0.5 && it.bottom <= r.bar.bottom + 0.5, `${it.id} spills out of the header`);
+  }
+  assert.ok(r.title >= minTitle, `title squeezed to ${r.title}px`);
+  return r;
+}
+
 async function desktop(browser, base) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
@@ -131,7 +148,7 @@ async function desktop(browser, base) {
 
   // 7. Copy.
   const copyBtn = page.locator('.topbar [data-action="copy"]');
-  assert.equal((await copyBtn.textContent()).trim(), 'Copy 4 comments');
+  assert.equal((await copyBtn.innerText()).trim(), 'Copy 4 comments');
   await copyBtn.click();
   await page.waitForSelector('.toast:not([hidden])');
   const expected = [
@@ -272,21 +289,32 @@ async function phone(browser, base) {
   await page.evaluate((t) => navigator.clipboard.writeText(t), SAMPLE);
   await page.tap('#pasteBtn');
   await page.waitForSelector('#doc:not([hidden])');
-  assert.ok(await page.isVisible('#bottombar'));
-  assert.ok(!(await page.isVisible('.topbar [data-action="copy"]')), 'desktop copy button hidden on phones');
+  // Copy and Preview live in the header, compact, on one row; nothing is pinned to the bottom.
+  const copyBtn = page.locator('.topbar [data-action="copy"]');
+  assert.ok(await copyBtn.isVisible());
+  assert.ok(await page.isVisible('.topbar [data-action="preview"]'));
+  assert.equal((await copyBtn.innerText()).trim(), 'Copy');
+  assert.ok(await copyBtn.isDisabled());
+  await headerFits(page);
+  const fixedAtBottom = await page.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => {
+    const s = getComputedStyle(e);
+    const r = e.getBoundingClientRect();
+    const onScreen = r.height > 0 && r.right > 0 && r.left < innerWidth; // the closed drawer is parked off-screen
+    return s.position === 'fixed' && s.display !== 'none' && onScreen && r.bottom >= innerHeight - 1;
+  }).map((e) => e.className));
+  assert.deepEqual(fixedAtBottom, [], 'nothing pinned to the bottom of the screen');
 
-  // Tap a line: composer opens immediately and the copy bar gets out of the keyboard's way.
+  // Tap a line: composer opens immediately.
   await page.tap(`${lineSel(7)} .content`);
   await page.waitForSelector(`${threadSel(7)} .composer textarea`);
   assert.ok(await page.evaluate(() => document.activeElement.matches('.composer textarea')));
-  assert.ok(!(await page.isVisible('#bottombar .btn-primary')));
   await page.keyboard.type('Which stack?');
+  assert.equal((await copyBtn.innerText()).trim(), 'Copy 1');
   if (shotDir) await page.screenshot({ path: `${shotDir}/phone-composing.png` });
   await page.tap(`${threadSel(7)} .composer .btn-primary`);
   await page.waitForSelector(`${threadSel(7)} .comment`);
-  assert.ok(await page.isVisible('#bottombar .btn-primary'));
 
-  await page.tap('#bottombar [data-action="copy"]');
+  await copyBtn.tap();
   await page.waitForSelector('.toast:not([hidden])');
   assert.equal(await clipboard(page), "> ### Why\n> - It's already in your stack.\nWhich stack?");
   if (shotDir) await page.screenshot({ path: `${shotDir}/phone-doc.png` });
@@ -320,6 +348,48 @@ async function phone(browser, base) {
   await context.close();
 }
 
+async function phoneSizes(browser, base) {
+  const text = SAMPLE;
+  // Landscape: little height, so a slim header that gets out of the way while typing.
+  const context = await browser.newContext({ ...devices['iPhone 15 landscape'] });
+  const page = await context.newPage();
+  watch(page);
+  await page.goto(`${base}#new`);
+  await page.fill('#sourceInput', text);
+  await page.tap('#editorDone');
+  await page.waitForSelector('#doc:not([hidden])');
+  const { bar } = await headerFits(page);
+  assert.ok(bar.height <= 44, `landscape header is ${bar.height}px tall`);
+  const headerPos = () => page.evaluate(() => getComputedStyle(document.querySelector('.topbar')).position);
+  assert.equal(await headerPos(), 'sticky');
+  await page.tap(`${lineSel(12)} .content`);
+  await page.waitForSelector(`${threadSel(12)} .composer textarea`);
+  assert.equal(await headerPos(), 'static', 'header scrolls away while typing');
+  await page.keyboard.type('Index on run_at?');
+  if (shotDir) await page.screenshot({ path: `${shotDir}/landscape-composing.png` });
+  await page.tap(`${threadSel(12)} .composer .btn-primary`);
+  await page.waitForSelector(`${threadSel(12)} .comment`);
+  assert.equal(await headerPos(), 'sticky', 'header comes back afterwards');
+  await page.evaluate(() => window.scrollTo(0, 120));
+  if (shotDir) await page.screenshot({ path: `${shotDir}/landscape-doc.png` });
+  await context.close();
+
+  // The narrowest phone: everything still fits on one row.
+  const small = await browser.newContext({ ...devices['iPhone SE'] });
+  const p2 = await small.newPage();
+  watch(p2);
+  await p2.goto(`${base}#new`);
+  await p2.fill('#sourceInput', text);
+  await p2.tap('#editorDone');
+  await p2.waitForSelector('#doc:not([hidden])');
+  await p2.tap(`${lineSel(3)} .gutter`);
+  await p2.keyboard.type('x');
+  await p2.tap(`${threadSel(3)} .composer .btn-primary`);
+  await headerFits(p2, 50);
+  if (shotDir) await p2.screenshot({ path: `${shotDir}/small-phone.png` });
+  await small.close();
+}
+
 (async () => {
   const server = createServer().listen(0);
   await new Promise((r) => server.once('listening', r));
@@ -330,6 +400,8 @@ async function phone(browser, base) {
     console.log('ok - desktop');
     await phone(browser, base);
     console.log('ok - phone');
+    await phoneSizes(browser, base);
+    console.log('ok - landscape and small phones');
     assert.deepEqual(errors, [], 'no page errors');
     console.log('ok - no console errors');
   } finally {
