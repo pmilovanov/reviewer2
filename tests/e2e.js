@@ -41,6 +41,14 @@ async function clipboard(page) {
   return page.evaluate(() => navigator.clipboard.readText());
 }
 
+/** How line `n`'s gutter renders: its number's font size, its width, and whether the comment dot shows. */
+async function gutter(page, n) {
+  return page.locator(`${lineSel(n)} .gutter`).evaluate((g) => {
+    const dot = getComputedStyle(g, '::before');
+    return { fontSize: getComputedStyle(g).fontSize, width: g.offsetWidth, dot: dot.content !== 'none' && dot.width !== 'auto' };
+  });
+}
+
 /** Every visible header control sits on one row inside the viewport, and the title keeps some room. */
 async function headerFits(page, minTitle = 60) {
   const r = await page.evaluate(() => {
@@ -78,6 +86,7 @@ async function desktop(browser, base) {
   assert.match(page.url(), /#[a-z0-9]+$/);
   assert.equal(await page.inputValue('#titleInput'), '');
   assert.equal(await page.getAttribute('#titleInput', 'placeholder'), 'Short answer');
+  assert.equal((await gutter(page, 3)).fontSize, '11.5px', 'line numbers shown on desktop');
   if (shotDir) await page.screenshot({ path: `${shotDir}/desktop-doc.png` });
 
   // 1. Comment via the gutter, save with Ctrl+Enter.
@@ -102,6 +111,7 @@ async function desktop(browser, base) {
   await page.keyboard.type('Yes please.');
   await page.click(`${lineSel(19)} .gutter`);
   await page.waitForSelector(`${threadSel(22)} .comment`);
+  assert.equal(await page.textContent('#toast span'), 'Saved your comment on “Let me know if you want a migration…”');
   await page.keyboard.press('Escape'); // empty draft: just closes
   assert.equal(await page.locator('.composer').count(), 0);
 
@@ -296,6 +306,9 @@ async function phone(browser, base) {
   assert.equal((await copyBtn.innerText()).trim(), 'Copy');
   assert.ok(await copyBtn.isDisabled());
   await headerFits(page);
+  const g = await gutter(page, 3);
+  assert.equal(g.fontSize, '0px', 'no line numbers on phones');
+  assert.ok(g.width <= 14, `phone gutter is ${g.width}px wide`);
   const fixedAtBottom = await page.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => {
     const s = getComputedStyle(e);
     const r = e.getBoundingClientRect();
@@ -313,6 +326,8 @@ async function phone(browser, base) {
   if (shotDir) await page.screenshot({ path: `${shotDir}/phone-composing.png` });
   await page.tap(`${threadSel(7)} .composer .btn-primary`);
   await page.waitForSelector(`${threadSel(7)} .comment`);
+  assert.ok((await gutter(page, 7)).dot, 'the dot still marks a commented line');
+  assert.ok(!(await gutter(page, 8)).dot);
 
   await copyBtn.tap();
   await page.waitForSelector('.toast:not([hidden])');
@@ -360,6 +375,7 @@ async function phoneSizes(browser, base) {
   await page.waitForSelector('#doc:not([hidden])');
   const { bar } = await headerFits(page);
   assert.ok(bar.height <= 44, `landscape header is ${bar.height}px tall`);
+  assert.equal((await gutter(page, 3)).fontSize, '0px', 'no line numbers in landscape');
   const headerPos = () => page.evaluate(() => getComputedStyle(document.querySelector('.topbar')).position);
   assert.equal(await headerPos(), 'sticky');
   await page.tap(`${lineSel(12)} .content`);
@@ -374,6 +390,20 @@ async function phoneSizes(browser, base) {
   if (shotDir) await page.screenshot({ path: `${shotDir}/landscape-doc.png` });
   await context.close();
 
+  // A phone wide enough in landscape for the desktop layout is still a touch screen:
+  // no line numbers there either.
+  const wide = await browser.newContext({ ...devices['Pixel 7 landscape'] });
+  const p3 = await wide.newPage();
+  watch(p3);
+  await p3.goto(`${base}#new`);
+  await p3.fill('#sourceInput', text);
+  await p3.tap('#editorDone');
+  await p3.waitForSelector('#doc:not([hidden])');
+  assert.ok(await p3.isVisible('#sidebar'), 'desktop layout at 863px');
+  assert.equal((await gutter(p3, 3)).fontSize, '0px', 'no line numbers on a wide touch screen');
+  if (shotDir) await p3.screenshot({ path: `${shotDir}/wide-touch.png` });
+  await wide.close();
+
   // The narrowest phone: everything still fits on one row.
   const small = await browser.newContext({ ...devices['iPhone SE'] });
   const p2 = await small.newPage();
@@ -382,7 +412,7 @@ async function phoneSizes(browser, base) {
   await p2.fill('#sourceInput', text);
   await p2.tap('#editorDone');
   await p2.waitForSelector('#doc:not([hidden])');
-  await p2.tap(`${lineSel(3)} .gutter`);
+  await p2.tap(`${lineSel(3)} .content`);
   await p2.keyboard.type('x');
   await p2.tap(`${threadSel(3)} .composer .btn-primary`);
   await headerFits(p2, 50);
