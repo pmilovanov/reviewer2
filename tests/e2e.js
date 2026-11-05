@@ -201,6 +201,59 @@ async function desktop(browser, base) {
     await page.screenshot({ path: `${shotDir}/desktop-comments.png` });
     await page.keyboard.press('Escape');
   }
+
+  // 12. Open files: several at once become separate documents titled after the
+  // file; a binary file is refused; a byte-order mark is dropped.
+  const file = (name, text) => ({ name, mimeType: 'text/plain', buffer: Buffer.from(text) });
+  await page.click('#newBtn');
+  await page.waitForSelector('#editor:not([hidden])');
+  assert.equal((await page.textContent('#fileBtn')).trim(), 'Open file…');
+  await page.setInputFiles('#fileInput', [
+    file('notes.md', '﻿# Notes\n\nFirst file, opened from disk.'),
+    file('second.txt', 'Second file.'),
+    { name: 'photo.png', mimeType: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0x0d]) },
+  ]);
+  await page.waitForSelector('#doc:not([hidden])');
+  assert.equal(await page.inputValue('#titleInput'), 'notes');
+  assert.equal(await page.textContent(`${lineSel(1)} .content`), 'Notes');
+  assert.match(await page.textContent('#toast'), /photo\.png doesn’t look like a text file/);
+  assert.equal(await page.locator('.doc-item').count(), 4);
+  assert.ok(await page.locator('.doc-item .doc-title', { hasText: 'second' }).count());
+  // Back goes to the previous document, not to an empty paste box.
+  await page.goBack();
+  await page.waitForFunction(() => document.querySelectorAll('.comment').length === 4);
+
+  // While editing a document's text, a file replaces the text (unsaved until "Save text").
+  await page.click('.doc-item:has-text("notes") .doc-link');
+  await page.waitForFunction(() => document.querySelector('#titleInput').value === 'notes');
+  await page.click(`${lineSel(3)} .gutter`);
+  await page.keyboard.type('Keep me.');
+  await page.keyboard.press('Control+Enter');
+  await page.click('#editBtn');
+  assert.equal((await page.textContent('#fileBtn')).trim(), 'Replace from file…');
+  await page.setInputFiles('#fileInput', [file('v2.md', '# Notes v2\n\nFirst file, opened from disk.')]);
+  await page.waitForFunction(() => document.querySelector('#sourceInput').value.startsWith('# Notes v2'));
+  await page.click('#editorDone');
+  await page.waitForSelector('#doc:not([hidden])');
+  assert.equal(await page.textContent(`${lineSel(1)} .content`), 'Notes v2');
+  assert.equal(await page.textContent(`${threadSel(3)} .comment-body`), 'Keep me.');
+
+  // Drag and drop a file anywhere.
+  const dropped = await page.evaluate(() => {
+    const dt = new DataTransfer();
+    dt.items.add(new File(['Dropped in.'], 'dropped.md', { type: 'text/markdown' }));
+    const fire = (type) => document.body.dispatchEvent(new DragEvent(type, { dataTransfer: dt, bubbles: true, cancelable: true }));
+    fire('dragenter');
+    const overlay = getComputedStyle(document.querySelector('.drop-overlay')).display;
+    const label = document.querySelector('#dropLabel').textContent;
+    fire('dragover');
+    fire('drop');
+    return { overlay, label };
+  });
+  assert.deepEqual(dropped, { overlay: 'flex', label: 'Drop to open as a new review' });
+  await page.waitForFunction(() => document.querySelector('#titleInput').value === 'dropped');
+  assert.ok(!(await page.evaluate(() => document.body.classList.contains('dragging'))));
+  assert.equal(await page.locator('.doc-item').count(), 5);
   await context.close();
 }
 
@@ -212,6 +265,7 @@ async function phone(browser, base) {
   await page.goto(base);
   await page.waitForSelector('#editor:not([hidden])');
   assert.ok(await page.isVisible('#pasteBtn'), 'paste-from-clipboard button on phones');
+  assert.ok(await page.isVisible('#fileBtn'), 'open-file button on phones');
   if (shotDir) await page.screenshot({ path: `${shotDir}/phone-empty.png` });
 
   await page.evaluate((t) => navigator.clipboard.writeText(t), SAMPLE);

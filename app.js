@@ -139,6 +139,9 @@
     editorIntro: $('#editorIntro'),
     source: $('#sourceInput'),
     pasteBtn: $('#pasteBtn'),
+    fileBtn: $('#fileBtn'),
+    fileInput: $('#fileInput'),
+    dropLabel: $('#dropLabel'),
     editorCancel: $('#editorCancel'),
     editorDone: $('#editorDone'),
     doc: $('#doc'),
@@ -252,12 +255,14 @@
 
   function updateCount() {
     const n = doc ? doc.comments.length + (draft && draft.kind === 'new' && draft.body.trim() ? 1 : 0) : 0;
+    const viewing = mode === 'view' && !!doc;
     for (const b of $$('[data-action="copy"]')) {
+      b.hidden = !viewing;
       b.disabled = !n;
       b.querySelector('.label').textContent = n ? `Copy ${plural(n, 'comment')}` : 'No comments yet';
     }
     for (const b of $$('[data-action="preview"]')) {
-      b.hidden = !(mode === 'view' && doc);
+      b.hidden = !viewing;
       b.disabled = !n;
     }
   }
@@ -275,8 +280,82 @@
     el.editorDone.textContent = isNew ? 'Start commenting' : 'Save text';
     el.source.value = isNew ? '' : doc.text;
     el.pasteBtn.hidden = !(isNew && navigator.clipboard && navigator.clipboard.readText);
+    el.fileBtn.textContent = isNew ? 'Open file…' : 'Replace from file…';
+    el.fileInput.multiple = isNew;
     updateChrome();
     if (!isNew || matchMedia('(hover: hover)').matches) el.source.focus({ preventScroll: true });
+  }
+
+  /** Create and save a document; returns it, or null if storage refused. */
+  function createDoc(text, title = '') {
+    const now = Date.now();
+    const d = { id: uid(), title, text, comments: [], createdAt: now, updatedAt: now, draft: null };
+    if (!saveDoc(d)) return null;
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    return d;
+  }
+
+  function goToNewDoc(d) {
+    if (mode === 'new') {
+      // Don't leave the empty paste box behind in history.
+      history.replaceState(null, '', `#${d.id}`);
+      openDoc(d);
+    } else {
+      location.hash = d.id;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Files (picker and drag-and-drop)
+
+  const MAX_FILE_BYTES = 2 * 1024 * 1024; // localStorage holds ~5 MB in all
+
+  async function readTextFile(file) {
+    if (file.size > MAX_FILE_BYTES) {
+      throw new Error(`${file.name} is too large (${(file.size / 1048576).toFixed(1)} MB; the limit is 2 MB)`);
+    }
+    const text = await file.text();
+    if (text.includes('\u0000')) throw new Error(`${file.name} doesn’t look like a text file`);
+    const clean = Core.normalizeText(text).replace(/\s+$/, '');
+    if (!clean.trim()) throw new Error(`${file.name} is empty`);
+    return clean;
+  }
+
+  function fileTitle(name) {
+    return name.replace(/\.(md|markdown|mdown|mkd|mdx|txt|text)$/i, '');
+  }
+
+  /** New documents from files — or, while editing a document's text, replace that text. */
+  async function openFiles(fileList) {
+    const files = [...fileList];
+    if (!files.length) return;
+
+    if (mode === 'edit') {
+      try {
+        el.source.value = await readTextFile(files[0]);
+        toast(`Loaded ${files[0].name}${files.length > 1 ? ' (one file at a time here)' : ''} — Save text to keep it`);
+      } catch (err) {
+        toast(err.message);
+      }
+      return;
+    }
+
+    const created = [];
+    const failed = [];
+    for (const f of files) {
+      try {
+        const d = createDoc(await readTextFile(f), fileTitle(f.name));
+        if (d) created.push(d);
+      } catch (err) {
+        failed.push(err.message);
+      }
+    }
+    if (failed.length === 1) toast(failed[0]);
+    else if (failed.length) toast(`${failed.length} files couldn’t be opened: ${failed.join('; ')}`);
+    else if (created.length > 1) toast(`Opened ${plural(created.length, 'file')} — they’re all in the list`);
+    if (!created.length) return;
+    renderSidebar();
+    goToNewDoc(created[0]);
   }
 
   function finishEditor() {
@@ -287,12 +366,8 @@
       return;
     }
     if (mode === 'new') {
-      const now = Date.now();
-      const d = { id: uid(), title: '', text, comments: [], createdAt: now, updatedAt: now, draft: null };
-      if (!saveDoc(d)) return;
-      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-      history.replaceState(null, '', `#${d.id}`);
-      openDoc(d);
+      const d = createDoc(text);
+      if (d) goToNewDoc(d);
       return;
     }
     if (text !== doc.text) {
@@ -879,6 +954,42 @@
       toast('Clipboard access was refused — paste into the box instead.');
       el.source.focus();
     }
+  });
+
+  el.fileBtn.addEventListener('click', () => el.fileInput.click());
+  el.fileInput.addEventListener('change', () => {
+    const files = [...el.fileInput.files];
+    el.fileInput.value = ''; // so choosing the same file again still fires
+    openFiles(files);
+  });
+
+  // Drop files anywhere. Only file drags are intercepted; dragging text into a
+  // textarea behaves as usual.
+  let dragDepth = 0;
+  const isFileDrag = (e) => !!e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+  const endDrag = () => { dragDepth = 0; document.body.classList.remove('dragging'); };
+  window.addEventListener('dragenter', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (dragDepth++ === 0) {
+      el.dropLabel.textContent = mode === 'edit' ? 'Drop to replace the text' : 'Drop to open as a new review';
+      document.body.classList.add('dragging');
+    }
+  });
+  window.addEventListener('dragover', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  window.addEventListener('dragleave', (e) => {
+    if (!isFileDrag(e)) return;
+    if (--dragDepth <= 0) endDrag();
+  });
+  window.addEventListener('drop', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault(); // otherwise the browser navigates away to the file
+    endDrag();
+    openFiles(e.dataTransfer.files);
   });
 
   el.doc.addEventListener('pointerdown', onDocPointerDown);

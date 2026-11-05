@@ -13,7 +13,7 @@
   const MIN_CONTEXT_CHARS = 40;
 
   function normalizeText(text) {
-    return String(text ?? '').replace(/\r\n?/g, '\n').replace(/\u0000/g, '');
+    return String(text ?? '').replace(/^﻿/, '').replace(/\r\n?/g, '\n').replace(/\u0000/g, '');
   }
 
   function splitLines(text) {

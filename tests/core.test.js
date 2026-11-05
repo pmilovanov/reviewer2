@@ -155,6 +155,7 @@ test('deriveTitle skips markup and fences', () => {
   assert.ok(Core.deriveTitle('x'.repeat(200)).endsWith('…'));
 });
 
-test('normalizeText converts CRLF', () => {
+test('normalizeText converts CRLF and drops a byte-order mark', () => {
   assert.deepEqual(Core.splitLines('a\r\nb\rc'), ['a', 'b', 'c']);
+  assert.equal(Core.normalizeText('﻿# Title'), '# Title');
 });

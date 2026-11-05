@@ -18,7 +18,11 @@ Works on phones and desktops. No build step, no server, no dependencies.
 ## Using it
 
 - **Paste** a response into the box. Pasting into an empty box starts commenting
-  straight away; on phones there's also a *Paste from clipboard* button.
+  straight away; there's also a *Paste from clipboard* button.
+- **Or open a file** (`.md`, `.txt`, any plain text up to 2 MB) with *Open file…*,
+  or drop it anywhere on the page on a computer. Several files at once become
+  separate documents, titled after the file names. While editing a document's
+  text, *Replace from file…* swaps in a new version; comments follow their lines.
 - **Comment on a line**: tap/click the line (or the line number). `Ctrl/⌘+Enter`
   saves, `Esc` cancels.
 - **Comment on a phrase**: select text, then press *Comment on selection*. The
