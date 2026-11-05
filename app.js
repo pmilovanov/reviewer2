@@ -558,7 +558,7 @@
     const d = draft;
     const ta = h('textarea', {
       rows: '3',
-      placeholder: d.quote ? 'Comment on the selection…' : `Comment on line ${d.line + 1}…`,
+      placeholder: d.quote ? 'Comment on the selection…' : 'Comment on this line…',
       'aria-label': 'Comment',
     });
     ta.value = d.body;
@@ -580,7 +580,7 @@
           title: 'Quote the whole line instead',
           'aria-label': 'Quote the whole line instead',
           html: ICONS.x,
-          onclick: () => { d.quote = null; quote.remove(); ta.placeholder = `Comment on line ${d.line + 1}…`; persistDraftSoon(); ta.focus(); },
+          onclick: () => { d.quote = null; quote.remove(); ta.placeholder = 'Comment on this line…'; persistDraftSoon(); ta.focus(); },
         }))
       : null;
     composerEl = h('div', { class: 'composer' },
@@ -663,7 +663,12 @@
         doc.comments.push(saved);
         touch();
       }
-      if (!quiet) toast(`Saved comment on line ${d.line + 1}`);
+      if (!quiet) {
+        // Name the line by its text: line numbers aren't shown on phones.
+        const about = Core.deriveTitle(d.quote || lines[d.line] || '');
+        const snippet = about.length > 40 ? `${about.slice(0, 40).replace(/\s+\S*$/, '')}…` : about;
+        toast(about === 'Untitled' ? 'Saved your comment' : `Saved your comment on “${snippet}”`);
+      }
     }
     persistDraftSoon.flush();
     persist();

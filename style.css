@@ -544,7 +544,6 @@ body.dragging .drop-overlay { display: flex; }
 }
 
 @media (max-width: 760px) {
-  :root { --gutter: 2.1rem; }
   .desktop-only { display: none !important; }
 
   .app { grid-template-columns: minmax(0, 1fr); }
@@ -590,9 +589,18 @@ body.dragging .drop-overlay { display: flex; }
   /* Two source buttons share a row; the primary action gets the full width below. */
   .editor-actions .spacer { display: none; }
   .editor-actions .btn { flex: 1 1 40%; min-height: 2.75rem; font-size: 1rem; }
-  .gutter { padding-right: 0.45rem; font-size: 10.5px; }
-  .line.has-comments .gutter::before { left: 0.15rem; }
-  .thread { margin-left: 0.6rem; }
+}
+
+/* ---------- Phones and touch screens: no line numbers ---------- */
+/* There the line itself is the tap target, so the numbers are just noise. A slim
+   gutter remains to carry the dot that marks commented lines. This also covers
+   phones in landscape that are wide enough for the desktop layout. */
+
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  :root { --gutter: 0.8rem; }
+  .gutter { padding: 0; font-size: 0; }
+  .line.has-comments .gutter::before { left: 0.1rem; }
+  .line:hover .gutter::after { content: none; }
 }
 
 /* ---------- Short screens (phones in landscape) ---------- */
