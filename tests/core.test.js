@@ -46,9 +46,9 @@ test('exportComments: format, ordering and multi-line bodies', () => {
   assert.equal(
     out,
     [
-      '> First line, which is long enough to be quoted on its own.\nAbout the first.\nSecond paragraph.',
-      '> First line, which is long enough to be quoted on its own.\n> Short.\nWhy short?',
-      '> Third line that also happens to be quite long enough.\nThird!',
+      '> First line, which is long enough to be quoted on its own.\n\nAbout the first.\nSecond paragraph.',
+      '> First line, which is long enough to be quoted on its own.\n> Short.\n\nWhy short?',
+      '> Third line that also happens to be quite long enough.\n\nThird!',
     ].join('\n\n'),
   );
 });
@@ -57,14 +57,14 @@ test('exportComments: a selection quote replaces the line context', () => {
   const out = Core.exportComments('Use Redis for caching and Postgres for everything else.', [
     c(0, 'Why not just Postgres?', { quote: 'Use Redis for caching' }),
   ]);
-  assert.equal(out, '> Use Redis for caching\nWhy not just Postgres?');
+  assert.equal(out, '> Use Redis for caching\n\nWhy not just Postgres?');
 });
 
 test('exportComments: orphaned comments quote the line they were written on', () => {
   const out = Core.exportComments('Totally new text here.', [
     c(0, 'Hm.', { orphan: true, lineText: 'The original line.' }),
   ]);
-  assert.equal(out, '> The original line.\nHm.');
+  assert.equal(out, '> The original line.\n\nHm.');
 });
 
 test('exportComments: same-line comments keep creation order; empty bodies dropped', () => {
@@ -74,7 +74,7 @@ test('exportComments: same-line comments keep creation order; empty bodies dropp
     { id: 'a', line: 0, body: 'first', createdAt: 1 },
     { id: 'z', line: 0, body: '   ', createdAt: 3 },
   ]);
-  assert.equal(out, `> ${text}\nfirst\n\n> ${text}\nsecond`);
+  assert.equal(out, `> ${text}\n\nfirst\n\n> ${text}\n\nsecond`);
 });
 
 test('reanchor follows moved lines and flags vanished ones', () => {
