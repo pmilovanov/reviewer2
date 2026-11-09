@@ -197,12 +197,16 @@
     return [...comments].sort((a, b) => a.line - b.line || a.createdAt - b.createdAt);
   }
 
-  /** The text that goes to the clipboard. */
+  /**
+   * The text that goes to the clipboard. The blank line between quote and comment
+   * matters: in Markdown a line straight after "> …" is a lazy continuation and
+   * would render as part of the quote.
+   */
   function exportComments(text, comments) {
     const lines = splitLines(text);
     return sortComments(comments)
       .filter((c) => c.body && c.body.trim())
-      .map((c) => `${quoteBlock(commentContext(lines, c))}\n${c.body.trim()}`)
+      .map((c) => `${quoteBlock(commentContext(lines, c))}\n\n${c.body.trim()}`)
       .join('\n\n');
   }
 

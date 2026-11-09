@@ -162,10 +162,10 @@ async function desktop(browser, base) {
   await copyBtn.click();
   await page.waitForSelector('.toast:not([hidden])');
   const expected = [
-    '> Use **Postgres** for the queue unless you expect more than a few thousand jobs per second.\nWhat counts as "a few thousand"?',
-    '> unless you expect\nExpect at peak, or on average?',
-    "> ### Why\n> - It's already in your stack.\nOnly matters if the job writes to the same DB.",
-    '> Let me know if you want a migration plan.\nYes please.',
+    '> Use **Postgres** for the queue unless you expect more than a few thousand jobs per second.\n\nWhat counts as "a few thousand"?',
+    '> unless you expect\n\nExpect at peak, or on average?',
+    "> ### Why\n> - It's already in your stack.\n\nOnly matters if the job writes to the same DB.",
+    '> Let me know if you want a migration plan.\n\nYes please.',
   ].join('\n\n');
   assert.equal(await clipboard(page), expected);
 
@@ -331,7 +331,7 @@ async function phone(browser, base) {
 
   await copyBtn.tap();
   await page.waitForSelector('.toast:not([hidden])');
-  assert.equal(await clipboard(page), "> ### Why\n> - It's already in your stack.\nWhich stack?");
+  assert.equal(await clipboard(page), "> ### Why\n> - It's already in your stack.\n\nWhich stack?");
   if (shotDir) await page.screenshot({ path: `${shotDir}/phone-doc.png` });
 
   // Drawer.
