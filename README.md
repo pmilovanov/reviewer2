@@ -9,14 +9,17 @@ under a quote of the text it refers to — and paste them back into the chat.
 
 What counts as "a few thousand"?
 
+---
+
 > ### Why
 > - It's already in your stack.
 
 Only matters if the job writes to the same DB.
 ```
 
-The blank line after each quote is deliberate: in Markdown, a line directly under
-a `>` quote would be absorbed into it.
+The blank lines are deliberate. In Markdown, a line directly under a `>` quote
+would be absorbed into it, and a `---` directly under a line of text would turn
+that line into a heading.
 
 Works on phones and desktops. No build step, no server, no dependencies.
 

@@ -49,8 +49,15 @@ test('exportComments: format, ordering and multi-line bodies', () => {
       '> First line, which is long enough to be quoted on its own.\n\nAbout the first.\nSecond paragraph.',
       '> First line, which is long enough to be quoted on its own.\n> Short.\n\nWhy short?',
       '> Third line that also happens to be quite long enough.\n\nThird!',
-    ].join('\n\n'),
+    ].join('\n\n---\n\n'),
   );
+  // A "---" straight under a line of text would turn that line into a heading.
+  assert.doesNotMatch(out, /\S\n---/);
+});
+
+test('exportComments: a single comment has no divider', () => {
+  const out = Core.exportComments('A sufficiently long line so that context is just this line.', [c(0, 'Only one.')]);
+  assert.doesNotMatch(out, /---/);
 });
 
 test('exportComments: a selection quote replaces the line context', () => {
@@ -74,7 +81,7 @@ test('exportComments: same-line comments keep creation order; empty bodies dropp
     { id: 'a', line: 0, body: 'first', createdAt: 1 },
     { id: 'z', line: 0, body: '   ', createdAt: 3 },
   ]);
-  assert.equal(out, `> ${text}\n\nfirst\n\n> ${text}\n\nsecond`);
+  assert.equal(out, `> ${text}\n\nfirst\n\n---\n\n> ${text}\n\nsecond`);
 });
 
 test('reanchor follows moved lines and flags vanished ones', () => {
