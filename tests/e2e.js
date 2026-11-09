@@ -166,7 +166,7 @@ async function desktop(browser, base) {
     '> unless you expect\n\nExpect at peak, or on average?',
     "> ### Why\n> - It's already in your stack.\n\nOnly matters if the job writes to the same DB.",
     '> Let me know if you want a migration plan.\n\nYes please.',
-  ].join('\n\n');
+  ].join('\n\n---\n\n');
   assert.equal(await clipboard(page), expected);
 
   // Preview shows the same text.

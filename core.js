@@ -198,16 +198,17 @@
   }
 
   /**
-   * The text that goes to the clipboard. The blank line between quote and comment
-   * matters: in Markdown a line straight after "> …" is a lazy continuation and
-   * would render as part of the quote.
+   * The text that goes to the clipboard: each comment under its quote, comments
+   * separated by a "---" rule. The blank lines matter in Markdown: a line straight
+   * after "> …" is a lazy continuation and would render as part of the quote, and
+   * a "---" straight under a line of text would turn that line into a heading.
    */
   function exportComments(text, comments) {
     const lines = splitLines(text);
     return sortComments(comments)
       .filter((c) => c.body && c.body.trim())
       .map((c) => `${quoteBlock(commentContext(lines, c))}\n\n${c.body.trim()}`)
-      .join('\n\n');
+      .join('\n\n---\n\n');
   }
 
   /**
